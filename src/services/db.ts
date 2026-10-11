@@ -5,10 +5,11 @@ import {
   GoalMilestone,
   AppPreferences,
   BackupData,
+  MounjaroInjection,
 } from '../types';
 
 const DB_NAME = 'MyProgressDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
   theme: 'light',
@@ -28,7 +29,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
     muscle: true,
     water: true,
     visceralFat: true,
-    protein: true,
+    boneMass: true,
     bmr: true,
     bmi: true,
   },
@@ -48,6 +49,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
     dailyJournal: true,
     waterReminder: false,
     waterFrequencyHours: 2,
+    mounjaroWeekly: true,
   },
 };
 
@@ -83,6 +85,11 @@ function openDatabase(): Promise<IDBDatabase> {
 
       if (!db.objectStoreNames.contains('preferences')) {
         db.createObjectStore('preferences', { keyPath: 'id' });
+      }
+
+      if (!db.objectStoreNames.contains('mounjaro_injections')) {
+        const injStore = db.createObjectStore('mounjaro_injections', { keyPath: 'id' });
+        injStore.createIndex('date', 'date', { unique: false });
       }
     };
 
@@ -145,7 +152,6 @@ export const dbService = {
       store.getAll()
     ).then((items) => {
       return (items || []).sort((a, b) => {
-        // Chronological sort
         const dateA = a.date + (a.time ? `T${a.time}` : 'T00:00');
         const dateB = b.date + (b.time ? `T${b.time}` : 'T00:00');
         return dateA.localeCompare(dateB);
@@ -209,6 +215,27 @@ export const dbService = {
     await runTransaction('daily_entries', 'readwrite', (store) => store.delete(id));
   },
 
+  // MOUNJARO INJECTIONS
+  async getMounjaroInjections(): Promise<MounjaroInjection[]> {
+    return runTransaction<MounjaroInjection[]>('mounjaro_injections', 'readonly', (store) =>
+      store.getAll()
+    ).then((items) => {
+      return (items || []).sort((a, b) => {
+        const dateA = a.date + (a.time ? `T${a.time}` : 'T00:00');
+        const dateB = b.date + (b.time ? `T${b.time}` : 'T00:00');
+        return dateB.localeCompare(dateA); // most recent first
+      });
+    });
+  },
+
+  async saveMounjaroInjection(injection: MounjaroInjection): Promise<void> {
+    await runTransaction('mounjaro_injections', 'readwrite', (store) => store.put(injection));
+  },
+
+  async deleteMounjaroInjection(id: string): Promise<void> {
+    await runTransaction('mounjaro_injections', 'readwrite', (store) => store.delete(id));
+  },
+
   // MILESTONES
   async getMilestones(): Promise<GoalMilestone[]> {
     return runTransaction<GoalMilestone[]>('milestones', 'readonly', (store) =>
@@ -246,22 +273,25 @@ export const dbService = {
 
   // BACKUP & RESTORE
   async exportAllData(): Promise<BackupData> {
-    const [profile, assessments, dailyEntries, milestones, preferences] = await Promise.all([
-      this.getProfile(),
-      this.getAssessments(),
-      this.getDailyEntries(),
-      this.getMilestones(),
-      this.getPreferences(),
-    ]);
+    const [profile, assessments, dailyEntries, milestones, preferences, mounjaroInjections] =
+      await Promise.all([
+        this.getProfile(),
+        this.getAssessments(),
+        this.getDailyEntries(),
+        this.getMilestones(),
+        this.getPreferences(),
+        this.getMounjaroInjections(),
+      ]);
 
     return {
-      version: 1,
+      version: 2,
       appName: 'My Progress',
       exportedAt: new Date().toISOString(),
       profile,
       assessments,
       dailyEntries,
       milestones,
+      mounjaroInjections,
       preferences,
     };
   },
@@ -269,7 +299,12 @@ export const dbService = {
   async importData(
     data: BackupData,
     mode: 'merge' | 'replace'
-  ): Promise<{ importedAssessments: number; importedEntries: number; importedMilestones: number }> {
+  ): Promise<{
+    importedAssessments: number;
+    importedEntries: number;
+    importedMilestones: number;
+    importedMounjaro: number;
+  }> {
     if (!data || typeof data !== 'object') {
       throw new Error('Ficheiro de cópia de segurança inválido.');
     }
@@ -281,6 +316,7 @@ export const dbService = {
     let importedAssessments = 0;
     let importedEntries = 0;
     let importedMilestones = 0;
+    let importedMounjaro = 0;
 
     if (data.profile) {
       await this.saveProfile(data.profile);
@@ -313,6 +349,15 @@ export const dbService = {
       }
     }
 
+    if (Array.isArray(data.mounjaroInjections)) {
+      for (const item of data.mounjaroInjections) {
+        if (item && item.id && item.date) {
+          await this.saveMounjaroInjection(item);
+          importedMounjaro++;
+        }
+      }
+    }
+
     if (data.preferences) {
       await this.savePreferences({ ...DEFAULT_PREFERENCES, ...data.preferences });
     }
@@ -321,16 +366,28 @@ export const dbService = {
       importedAssessments,
       importedEntries,
       importedMilestones,
+      importedMounjaro,
     };
   },
 
   async clearAllData(): Promise<void> {
     const db = await openDatabase();
-    const stores = ['profile', 'assessments', 'daily_entries', 'milestones', 'preferences'];
+    const stores = [
+      'profile',
+      'assessments',
+      'daily_entries',
+      'milestones',
+      'preferences',
+      'mounjaro_injections',
+    ];
 
     await new Promise<void>((resolve, reject) => {
       const transaction = db.transaction(stores, 'readwrite');
-      stores.forEach((s) => transaction.objectStore(s).clear());
+      stores.forEach((s) => {
+        if (db.objectStoreNames.contains(s)) {
+          transaction.objectStore(s).clear();
+        }
+      });
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error);
     });

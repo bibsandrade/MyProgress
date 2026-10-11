@@ -11,6 +11,10 @@ import {
   Sparkles,
   ArrowRight,
   ChevronRight,
+  Syringe,
+  Utensils,
+  Activity,
+  Clock,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
@@ -19,6 +23,7 @@ import {
   calculateMeasurementEvolution,
   calculateBmi,
   getBmiCategory,
+  calculateDailyMealTotals,
 } from '../services/calculations';
 import {
   formatDatePt,
@@ -26,23 +31,46 @@ import {
   formatCm,
   formatPercent,
   formatNumber,
+  getTodayDateString,
 } from '../utils/formatters';
 import { InteractiveCharts } from '../components/InteractiveCharts';
 
 interface Props {
   onOpenAssessmentModal: () => void;
   onOpenDailyModal: () => void;
+  onOpenMealModal?: () => void;
+  onOpenInjectionModal?: () => void;
+  onOpenSymptomsModal?: () => void;
   onNavigateToTab: (tab: string) => void;
 }
 
 export const DashboardView: React.FC<Props> = ({
   onOpenAssessmentModal,
   onOpenDailyModal,
+  onOpenMealModal,
+  onOpenInjectionModal,
+  onOpenSymptomsModal,
   onNavigateToTab,
 }) => {
-  const { profile, assessments, dailyEntries, milestones, saveMilestone } = useApp();
+  const {
+    profile,
+    assessments,
+    dailyEntries,
+    milestones,
+    mounjaroInjections,
+    saveMilestone,
+  } = useApp();
 
   const weightProgress = calculateWeightProgress(profile, assessments, dailyEntries);
+
+  // Latest Mounjaro injection
+  const latestMounjaro = mounjaroInjections.length > 0 ? mounjaroInjections[0] : null;
+  let daysSinceInj: number | null = null;
+  if (latestMounjaro) {
+    const d1 = new Date(latestMounjaro.date + 'T00:00:00');
+    const d2 = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+    daysSinceInj = Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+  }
 
   // Measurement evolutions
   const waistEvolution = calculateMeasurementEvolution(assessments, 'waistCm');
@@ -57,6 +85,11 @@ export const DashboardView: React.FC<Props> = ({
   const bmiInfo = currentBmi ? getBmiCategory(currentBmi) : null;
 
   const hasAnyData = assessments.length > 0 || dailyEntries.length > 0;
+
+  const todayDateStr = getTodayDateString();
+  const todayEntry = dailyEntries.find((d) => d.date === todayDateStr);
+  const todayMeals = todayEntry?.meals || [];
+  const todayMealTotals = calculateDailyMealTotals(todayMeals);
 
   const handleToggleMilestone = async (id: string, currentlyAchieved: boolean) => {
     const target = milestones.find((m) => m.id === id);
@@ -123,22 +156,113 @@ export const DashboardView: React.FC<Props> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {onOpenMealModal && (
+            <button
+              onClick={onOpenMealModal}
+              className="flex items-center gap-1.5 rounded-xl border border-amber-300 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-100/60 transition"
+            >
+              <Utensils className="w-3.5 h-3.5" />
+              <span>+ Refeição</span>
+            </button>
+          )}
+          {onOpenInjectionModal && (
+            <button
+              onClick={onOpenInjectionModal}
+              className="flex items-center gap-1.5 rounded-xl border border-purple-300 dark:border-purple-900/50 bg-purple-50/50 dark:bg-purple-950/20 px-3 py-2 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100/60 transition"
+            >
+              <Syringe className="w-3.5 h-3.5" />
+              <span>+ Mounjaro</span>
+            </button>
+          )}
           <button
             onClick={onOpenAssessmentModal}
-            className="flex items-center gap-1.5 rounded-xl bg-[#E99AB9] hover:bg-[#C86D93] text-white px-4 py-2.5 text-xs font-semibold shadow-xs transition"
+            className="flex items-center gap-1.5 rounded-xl bg-[#E99AB9] hover:bg-[#C86D93] text-white px-3.5 py-2 text-xs font-semibold shadow-xs transition"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Avaliação Corporal</span>
-          </button>
-          <button
-            onClick={onOpenDailyModal}
-            className="flex items-center gap-1.5 rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-white dark:bg-[#1F1721] px-4 py-2.5 text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5] hover:bg-[#F8DCE8]/30 transition"
-          >
-            <span>+ Diário do Dia</span>
+            <span>+ Avaliação</span>
           </button>
         </div>
       </div>
+
+      {/* MOUNJARO TREATMENT WIDGET */}
+      {latestMounjaro ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-purple-50/80 via-rose-50/40 to-white dark:from-[#251A2E]/70 dark:via-[#1F1721] dark:to-[#1F1721] border border-purple-200/60 dark:border-[#362A36] gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-300">
+              <Syringe className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5]">
+                  Tratamento Mounjaro: Dose de {latestMounjaro.doseMg} mg
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-200/60 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 font-semibold">
+                  Semanal
+                </span>
+              </div>
+              <span className="text-[11px] text-[#817782] dark:text-[#A69AA8] block mt-0.5">
+                Última aplicação: {formatDatePt(latestMounjaro.date)} ·{' '}
+                {daysSinceInj !== null && daysSinceInj >= 0
+                  ? daysSinceInj === 0
+                    ? 'Hoje é o dia da injeção'
+                    : `Dia ${daysSinceInj + 1} de 7 do ciclo`
+                  : ''}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {onOpenSymptomsModal && (
+              <button
+                onClick={() => onOpenSymptomsModal()}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 bg-white dark:bg-[#1F1721] text-xs font-semibold text-[#C86D93] hover:bg-rose-50 dark:hover:bg-[#2D1E2B] transition"
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>Classificar Sintomas</span>
+              </button>
+            )}
+            {onOpenInjectionModal && (
+              <button
+                onClick={onOpenInjectionModal}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Nova Dose</span>
+              </button>
+            )}
+            <button
+              onClick={() => onNavigateToTab('mounjaro')}
+              className="text-xs font-semibold text-purple-600 dark:text-purple-300 hover:underline flex items-center gap-0.5 px-2 py-1.5"
+            >
+              <span>Ver painel</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-purple-50/40 dark:bg-purple-950/20 border border-purple-200/40 dark:border-[#362A36] gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-300">
+              <Syringe className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">
+                Tratamento Mounjaro (Tirzepatida)
+              </span>
+              <span className="text-[11px] text-[#817782] dark:text-[#A69AA8]">
+                Regista a dose semanal da tua caneta e classifica sintomas (náuseas, saciedade, refluxo) dia a dia
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => (onOpenInjectionModal ? onOpenInjectionModal() : onNavigateToTab('mounjaro'))}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#C86D93] hover:bg-[#A8587B] text-white text-xs font-semibold self-start sm:self-auto transition shadow-xs"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Registar 1ª Dose</span>
+          </button>
+        </div>
+      )}
 
       {/* SUMMARY CARDS GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -362,6 +486,93 @@ export const DashboardView: React.FC<Props> = ({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* CARD: ALIMENTAÇÃO & REFEIÇÕES DE HOJE */}
+      <div className="rounded-2xl bg-white dark:bg-[#1F1721] p-5 shadow-xs border border-[#F2BFD3]/40 dark:border-[#362A36]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 text-amber-600">
+              <Utensils className="w-4 h-4" />
+            </div>
+            <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] uppercase tracking-wide">
+              Alimentação & Refeições de Hoje
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F8DCE8] dark:bg-[#2D1E2B] text-[#C86D93] font-medium">
+              {todayMeals.length} {todayMeals.length === 1 ? 'refeição' : 'refeições'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-xs">
+              <span className="text-[#817782] dark:text-[#A69AA8]">Total: </span>
+              <strong className="text-[#39313A] dark:text-[#F7EFF5]">
+                {todayMealTotals.totalCalories > 0 ? `${todayMealTotals.totalCalories} kcal` : '0 kcal'}
+              </strong>
+              <span className="mx-1 text-[#817782]">·</span>
+              <span className="text-[#817782] dark:text-[#A69AA8]">Proteína: </span>
+              <strong className="text-[#39313A] dark:text-[#F7EFF5]">
+                {todayMealTotals.totalProtein > 0 ? `${todayMealTotals.totalProtein} g` : '0 g'}
+              </strong>
+            </div>
+
+            {onOpenMealModal && (
+              <button
+                onClick={onOpenMealModal}
+                className="flex items-center gap-1 px-3 py-1 rounded-xl bg-[#E99AB9] hover:bg-[#C86D93] text-white text-xs font-semibold shadow-xs transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Refeição</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {todayMeals.length === 0 ? (
+          <div className="py-4 text-center text-xs text-[#817782] dark:text-[#A69AA8] bg-[#FFF8FB] dark:bg-[#140F15] rounded-xl border border-dashed border-[#F2BFD3]/50 dark:border-[#362A36]">
+            Ainda não registaste nenhuma refeição para o dia de hoje.{' '}
+            {onOpenMealModal && (
+              <button
+                onClick={onOpenMealModal}
+                className="text-[#C86D93] font-semibold underline ml-1 hover:text-[#A8587B]"
+              >
+                Registar refeição agora
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {todayMeals.map((m) => (
+              <div
+                key={m.id}
+                className="p-3 rounded-xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/30 dark:border-[#362A36] flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5]">
+                      {m.name}
+                    </span>
+                    {m.time && (
+                      <span className="text-[10px] text-[#817782] flex items-center gap-0.5">
+                        <Clock className="w-2.5 h-2.5" />
+                        {m.time}
+                      </span>
+                    )}
+                  </div>
+                  {m.foods && (
+                    <p className="text-[11px] text-[#817782] dark:text-[#A69AA8] line-clamp-2 mb-2">
+                      {m.foods}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-[11px] font-semibold text-[#C86D93] pt-1 border-t border-[#F2BFD3]/20 dark:border-[#362A36]">
+                  <span>{m.caloriesKcal ? `${m.caloriesKcal} kcal` : '—'}</span>
+                  <span>{m.proteinGrams ? `${m.proteinGrams}g prot.` : ''}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* INTERACTIVE CHARTS */}

@@ -13,6 +13,8 @@ import {
   X,
   Droplet,
   Utensils,
+  Syringe,
+  Sparkles,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PWAInstallButton } from './PWAInstallButton';
@@ -22,6 +24,9 @@ interface Props {
   onSelectTab: (tab: string) => void;
   onOpenAssessmentModal: () => void;
   onOpenDailyModal: () => void;
+  onOpenInjectionModal: () => void;
+  onOpenMealModal?: () => void;
+  onOpenSymptomsModal?: () => void;
   children: React.ReactNode;
 }
 
@@ -30,6 +35,9 @@ export const AppLayout: React.FC<Props> = ({
   onSelectTab,
   onOpenAssessmentModal,
   onOpenDailyModal,
+  onOpenInjectionModal,
+  onOpenMealModal,
+  onOpenSymptomsModal,
   children,
 }) => {
   const { profile, preferences, updatePreferences } = useApp();
@@ -39,14 +47,19 @@ export const AppLayout: React.FC<Props> = ({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'journal', label: 'Diário', icon: BookOpen },
+    { id: 'mounjaro', label: 'Mounjaro', icon: Syringe },
     { id: 'assessments', label: 'Peso & Medidas', icon: Scale },
     { id: 'history', label: 'Histórico', icon: Calendar },
     { id: 'reports', label: 'Relatórios', icon: FileText },
     { id: 'settings', label: 'Definições', icon: Settings },
   ];
 
+  const isDarkMode = typeof document !== 'undefined'
+    ? document.documentElement.classList.contains('dark')
+    : preferences.theme === 'dark';
+
   const toggleTheme = () => {
-    const nextTheme = preferences.theme === 'dark' ? 'light' : 'dark';
+    const nextTheme = isDarkMode ? 'light' : 'dark';
     updatePreferences({ theme: nextTheme });
   };
 
@@ -109,17 +122,23 @@ export const AppLayout: React.FC<Props> = ({
           <div className="flex items-center justify-between px-2 pt-2">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl border border-[#F2BFD3]/40 dark:border-[#362A36] text-[#817782] hover:text-[#C86D93] transition"
-              title="Alternar tema"
+              className="p-2 rounded-xl border border-[#F2BFD3]/40 dark:border-[#362A36] text-[#817782] hover:text-[#C86D93] transition flex items-center gap-2 text-xs"
+              title={isDarkMode ? 'Mudar para tema claro' : 'Mudar para tema escuro'}
             >
-              {preferences.theme === 'dark' ? (
-                <Sun className="w-4 h-4" />
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span className="text-[11px] font-medium text-[#F7EFF5]">Tema Claro</span>
+                </>
               ) : (
-                <Moon className="w-4 h-4" />
+                <>
+                  <Moon className="w-4 h-4 text-[#817782]" />
+                  <span className="text-[11px] font-medium text-[#39313A]">Tema Escuro</span>
+                </>
               )}
             </button>
 
-            <span className="text-[11px] text-[#817782] truncate max-w-[120px]">
+            <span className="text-[11px] text-[#817782] truncate max-w-[100px]">
               {profile?.name || 'My Progress'}
             </span>
           </div>
@@ -140,8 +159,22 @@ export const AppLayout: React.FC<Props> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Quick theme toggle on mobile */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-xl border border-[#F2BFD3]/40 dark:border-[#362A36] text-[#817782] hover:text-[#C86D93]"
+            title={isDarkMode ? 'Tema Claro' : 'Tema Escuro'}
+          >
+            {isDarkMode ? (
+              <Sun className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-4 h-4 text-[#817782]" />
+            )}
+          </button>
+
           <PWAInstallButton />
+
           <button
             onClick={() => setShowQuickActionModal(true)}
             className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#E99AB9] text-white shadow-xs"
@@ -149,6 +182,7 @@ export const AppLayout: React.FC<Props> = ({
           >
             <Plus className="w-4 h-4" />
           </button>
+
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-1.5 rounded-xl border border-[#F2BFD3]/40 text-[#817782]"
@@ -187,9 +221,19 @@ export const AppLayout: React.FC<Props> = ({
               <span className="text-xs text-[#817782]">Tema Visual:</span>
               <button
                 onClick={toggleTheme}
-                className="p-1.5 rounded-xl border border-[#F2BFD3]/40 text-xs font-medium"
+                className="flex items-center gap-1.5 p-1.5 px-3 rounded-xl border border-[#F2BFD3]/40 text-xs font-semibold"
               >
-                {preferences.theme === 'dark' ? 'Mudar para Claro' : 'Mudar para Escuro'}
+                {isDarkMode ? (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Mudar para Claro</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-[#817782]" />
+                    <span>Mudar para Escuro</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -244,19 +288,86 @@ export const AppLayout: React.FC<Props> = ({
               </h3>
               <button
                 onClick={() => setShowQuickActionModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
+              {/* 1. Alimentação */}
+              <button
+                onClick={() => {
+                  setShowQuickActionModal(false);
+                  if (onOpenMealModal) onOpenMealModal();
+                  else onOpenDailyModal();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
+              >
+                <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600">
+                  <Utensils className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">
+                    Registo de Alimentação
+                  </span>
+                  <span className="text-[10px] text-[#817782]">
+                    Refeição, alimentos, calorias e proteína
+                  </span>
+                </div>
+              </button>
+
+              {/* 2. Mounjaro Dose */}
+              <button
+                onClick={() => {
+                  setShowQuickActionModal(false);
+                  onOpenInjectionModal();
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
+              >
+                <div className="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600">
+                  <Syringe className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">
+                    Dose de Mounjaro
+                  </span>
+                  <span className="text-[10px] text-[#817782]">
+                    Registar injeção semanal e local de aplicação
+                  </span>
+                </div>
+              </button>
+
+              {/* 3. Sintomas de Mounjaro */}
+              {onOpenSymptomsModal && (
+                <button
+                  onClick={() => {
+                    setShowQuickActionModal(false);
+                    onOpenSymptomsModal();
+                  }}
+                  className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
+                >
+                  <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-500">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">
+                      Sintomas do Mounjaro
+                    </span>
+                    <span className="text-[10px] text-[#817782]">
+                      Classificar náuseas, saciedade, refluxo, etc.
+                    </span>
+                  </div>
+                </button>
+              )}
+
+              {/* 4. Avaliação Corporal */}
               <button
                 onClick={() => {
                   setShowQuickActionModal(false);
                   onOpenAssessmentModal();
                 }}
-                className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
               >
                 <div className="p-2.5 rounded-xl bg-[#F8DCE8] dark:bg-[#2D1E2B] text-[#C86D93]">
                   <Scale className="w-5 h-5" />
@@ -271,22 +382,23 @@ export const AppLayout: React.FC<Props> = ({
                 </div>
               </button>
 
+              {/* 5. Diário de Hoje */}
               <button
                 onClick={() => {
                   setShowQuickActionModal(false);
                   onOpenDailyModal();
                 }}
-                className="w-full flex items-center gap-3 p-3.5 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/40 dark:border-[#362A36] hover:border-[#E99AB9] transition text-left"
               >
                 <div className="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-600">
-                  <Utensils className="w-5 h-5" />
+                  <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
                   <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">
-                    Diário de Hoje
+                    Diário Completo de Hoje
                   </span>
                   <span className="text-[10px] text-[#817782]">
-                    Alimentação, água, sono, treino e bem-estar
+                    Água, sono, treino e bem-estar geral
                   </span>
                 </div>
               </button>

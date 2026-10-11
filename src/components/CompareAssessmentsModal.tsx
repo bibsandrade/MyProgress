@@ -246,6 +246,14 @@ export const CompareAssessmentsModal: React.FC<Props> = ({
                         {renderDiff(itemA.waterPercent, itemB.waterPercent, (n) => formatNumber(n, 1), '%')}
                       </td>
                     </tr>
+                    <tr>
+                      <td className="py-2 px-4 font-medium">Massa Óssea</td>
+                      <td className="py-2 px-4">{itemA.boneMassKg !== undefined ? `${formatNumber(itemA.boneMassKg, 2)} kg` : '—'}</td>
+                      <td className="py-2 px-4">{itemB.boneMassKg !== undefined ? `${formatNumber(itemB.boneMassKg, 2)} kg` : '—'}</td>
+                      <td className="py-2 px-4">
+                        {renderDiff(itemA.boneMassKg, itemB.boneMassKg, (n) => formatNumber(n, 2), 'kg')}
+                      </td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

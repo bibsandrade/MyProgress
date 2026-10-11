@@ -12,9 +12,17 @@ import {
   Heart,
   ChevronDown,
   ChevronUp,
+  Syringe,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { DailyEntry, Meal, ExerciseEntry, ExerciseIntensity } from '../types';
+import {
+  DailyEntry,
+  Meal,
+  ExerciseEntry,
+  ExerciseIntensity,
+  InjectionSite,
+  MounjaroInjection,
+} from '../types';
 import {
   calculateSleepDuration,
   calculateDailyMealTotals,
@@ -32,7 +40,13 @@ export const DailyEntryModal: React.FC<Props> = ({
   onClose,
   dateToEdit,
 }) => {
-  const { dailyEntries, preferences, saveDailyEntry, deleteDailyEntry } = useApp();
+  const {
+    dailyEntries,
+    preferences,
+    saveDailyEntry,
+    deleteDailyEntry,
+    saveMounjaroInjection,
+  } = useApp();
 
   const [date, setDate] = useState(dateToEdit || getTodayDateString());
   const [weightKg, setWeightKg] = useState('');
@@ -55,6 +69,18 @@ export const DailyEntryModal: React.FC<Props> = ({
   const [hunger, setHunger] = useState<number>(3);
   const [satiety, setSatiety] = useState<number>(3);
   const [stress, setStress] = useState<number>(2);
+
+  // Mounjaro Treatment
+  const [showMounjaro, setShowMounjaro] = useState(false);
+  const [tookMounjaroToday, setTookMounjaroToday] = useState(false);
+  const [mounjaroDose, setMounjaroDose] = useState<number>(2.5);
+  const [mounjaroSite, setMounjaroSite] = useState<InjectionSite>('abdomen_direito');
+  const [mounjaroNausea, setMounjaroNausea] = useState<number>(0);
+  const [mounjaroEarlySatiety, setMounjaroEarlySatiety] = useState<number>(0);
+  const [mounjaroFatigue, setMounjaroFatigue] = useState<number>(0);
+  const [mounjaroReflux, setMounjaroReflux] = useState<number>(0);
+  const [mounjaroConstipation, setMounjaroConstipation] = useState<number>(0);
+  const [mounjaroNotes, setMounjaroNotes] = useState<string>('');
 
   // Binge / loss of control (private, non-judgmental)
   const [bingeEpisode, setBingeEpisode] = useState(false);
@@ -101,6 +127,35 @@ export const DailyEntryModal: React.FC<Props> = ({
       setSatiety(found.satiety || 3);
       setStress(found.stress || 2);
 
+      // Mounjaro
+      if (found.mounjaro) {
+        setShowMounjaro(true);
+        setTookMounjaroToday(!!found.mounjaro.tookInjection);
+        if (found.mounjaro.injectionDetails) {
+          setMounjaroDose(found.mounjaro.injectionDetails.doseMg || 2.5);
+          setMounjaroSite(found.mounjaro.injectionDetails.site || 'abdomen_direito');
+        }
+        if (found.mounjaro.symptoms) {
+          setMounjaroNausea(found.mounjaro.symptoms.nausea || 0);
+          setMounjaroEarlySatiety(found.mounjaro.symptoms.earlySatiety || 0);
+          setMounjaroFatigue(found.mounjaro.symptoms.fatigue || 0);
+          setMounjaroReflux(found.mounjaro.symptoms.acidReflux || 0);
+          setMounjaroConstipation(found.mounjaro.symptoms.constipation || 0);
+          setMounjaroNotes(found.mounjaro.symptoms.notes || '');
+        }
+      } else {
+        setShowMounjaro(false);
+        setTookMounjaroToday(false);
+        setMounjaroDose(2.5);
+        setMounjaroSite('abdomen_direito');
+        setMounjaroNausea(0);
+        setMounjaroEarlySatiety(0);
+        setMounjaroFatigue(0);
+        setMounjaroReflux(0);
+        setMounjaroConstipation(0);
+        setMounjaroNotes('');
+      }
+
       setBingeEpisode(!!found.bingeEpisode);
       setBingeNotes(found.bingeNotes || '');
 
@@ -139,6 +194,16 @@ export const DailyEntryModal: React.FC<Props> = ({
       setHunger(3);
       setSatiety(3);
       setStress(2);
+      setShowMounjaro(false);
+      setTookMounjaroToday(false);
+      setMounjaroDose(2.5);
+      setMounjaroSite('abdomen_direito');
+      setMounjaroNausea(0);
+      setMounjaroEarlySatiety(0);
+      setMounjaroFatigue(0);
+      setMounjaroReflux(0);
+      setMounjaroConstipation(0);
+      setMounjaroNotes('');
       setBingeEpisode(false);
       setBingeNotes('');
       setShowMenstrual(false);
@@ -159,18 +224,22 @@ export const DailyEntryModal: React.FC<Props> = ({
   const sleepHours = calculateSleepDuration(bedTime, wakeTime);
 
   // Meal management
-  const addMeal = () => {
-    const mealNames = ['Pequeno-almoço', 'Almoço', 'Lanche', 'Jantar', 'Ceia'];
-    const nextName = mealNames[meals.length % mealNames.length] || 'Refeição';
+  const addMealWithName = (name: string, defaultTime: string = '12:30') => {
     const newMeal: Meal = {
       id: 'meal_' + Date.now() + Math.random().toString(36).substring(2, 6),
-      name: nextName,
-      time: '12:30',
+      name,
+      time: defaultTime,
       foods: '',
       caloriesKcal: undefined,
       proteinGrams: undefined,
     };
-    setMeals([...meals, newMeal]);
+    setMeals((prev) => [...prev, newMeal]);
+  };
+
+  const addMeal = () => {
+    const mealNames = ['Pequeno-almoço', 'Almoço', 'Lanche', 'Jantar', 'Ceia'];
+    const nextName = mealNames[meals.length % mealNames.length] || 'Refeição';
+    addMealWithName(nextName);
   };
 
   const updateMeal = (id: string, updates: Partial<Meal>) => {
@@ -218,6 +287,33 @@ export const DailyEntryModal: React.FC<Props> = ({
       }
     }
 
+    const mounjaroLog =
+      showMounjaro ||
+      tookMounjaroToday ||
+      mounjaroNausea > 0 ||
+      mounjaroEarlySatiety > 0 ||
+      mounjaroFatigue > 0 ||
+      mounjaroReflux > 0 ||
+      mounjaroConstipation > 0
+        ? {
+            tookInjection: tookMounjaroToday,
+            injectionDetails: tookMounjaroToday
+              ? {
+                  doseMg: mounjaroDose,
+                  site: mounjaroSite,
+                }
+              : undefined,
+            symptoms: {
+              nausea: mounjaroNausea,
+              earlySatiety: mounjaroEarlySatiety,
+              fatigue: mounjaroFatigue,
+              acidReflux: mounjaroReflux,
+              constipation: mounjaroConstipation,
+              notes: mounjaroNotes.trim() || undefined,
+            },
+          }
+        : undefined;
+
     const entry: DailyEntry = {
       id: existingId || 'daily_' + Date.now(),
       date,
@@ -248,6 +344,7 @@ export const DailyEntryModal: React.FC<Props> = ({
             notes: menstrualNotes.trim() || undefined,
           }
         : undefined,
+      mounjaro: mounjaroLog,
       notes: notes.trim() || undefined,
       achievements: achievements.trim() || undefined,
       challenges: challenges.trim() || undefined,
@@ -257,6 +354,18 @@ export const DailyEntryModal: React.FC<Props> = ({
     };
 
     await saveDailyEntry(entry);
+
+    if (tookMounjaroToday) {
+      await saveMounjaroInjection({
+        id: 'inj_' + Date.now(),
+        date,
+        doseMg: mounjaroDose,
+        site: mounjaroSite,
+        notes: mounjaroNotes.trim() || undefined,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
     onClose();
   };
 
@@ -393,6 +502,26 @@ export const DailyEntryModal: React.FC<Props> = ({
                   Proteína: <strong className="text-[#39313A] dark:text-[#F7EFF5]">{mealTotals.totalProtein} g</strong>
                 </span>
               </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 mb-3">
+              <span className="text-[11px] text-[#817782] dark:text-[#A69AA8]">Refeições rápidas:</span>
+              {[
+                { label: 'Pequeno-almoço', time: '08:00' },
+                { label: 'Almoço', time: '13:00' },
+                { label: 'Lanche', time: '16:30' },
+                { label: 'Jantar', time: '20:00' },
+                { label: 'Ceia', time: '22:30' },
+              ].map((preset) => (
+                <button
+                  type="button"
+                  key={preset.label}
+                  onClick={() => addMealWithName(preset.label, preset.time)}
+                  className="px-2.5 py-1 rounded-xl border border-[#F2BFD3]/60 dark:border-[#362A36] bg-[#FFF8FB] dark:bg-[#140F15] text-[11px] font-medium text-[#39313A] dark:text-[#F7EFF5] hover:bg-[#F8DCE8]/40 transition"
+                >
+                  + {preset.label}
+                </button>
+              ))}
             </div>
 
             {meals.length === 0 ? (
@@ -773,6 +902,131 @@ export const DailyEntryModal: React.FC<Props> = ({
                       className="w-full rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-[#FFF8FB] dark:bg-[#140F15] px-3 py-1.5 text-xs"
                     />
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* MOUNJARO TREATMENT TRACKING (OPTIONAL) */}
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#19131B] border border-[#F2BFD3]/40 dark:border-[#362A36]">
+            <button
+              type="button"
+              onClick={() => setShowMounjaro(!showMounjaro)}
+              className="w-full flex items-center justify-between text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] uppercase tracking-wide"
+            >
+              <div className="flex items-center gap-2">
+                <Syringe className="w-4 h-4 text-[#C86D93]" />
+                <span>Tratamento Mounjaro (Dose & Sintomas)</span>
+              </div>
+              {showMounjaro ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+
+            {showMounjaro && (
+              <div className="mt-3 space-y-4 pt-2 border-t border-[#F2BFD3]/20 dark:border-[#362A36]">
+                {/* Took injection today? */}
+                <div className="p-3 rounded-xl bg-[#FFF8FB] dark:bg-[#140F15] border border-[#F2BFD3]/30">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5]">
+                    <input
+                      type="checkbox"
+                      checked={tookMounjaroToday}
+                      onChange={(e) => setTookMounjaroToday(e.target.checked)}
+                      className="rounded-sm text-[#E99AB9]"
+                    />
+                    <span>Tomei a injeção semanal de Mounjaro hoje! 💉</span>
+                  </label>
+
+                  {tookMounjaroToday && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-2 border-t border-[#F2BFD3]/20">
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#817782] mb-1">
+                          Dose administrada
+                        </label>
+                        <select
+                          value={mounjaroDose}
+                          onChange={(e) => setMounjaroDose(parseFloat(e.target.value))}
+                          className="w-full rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-white dark:bg-[#1F1721] px-3 py-1.5 text-xs text-[#39313A] dark:text-[#F7EFF5]"
+                        >
+                          <option value="2.5">2.5 mg</option>
+                          <option value="5">5.0 mg</option>
+                          <option value="7.5">7.5 mg</option>
+                          <option value="10">10.0 mg</option>
+                          <option value="12.5">12.5 mg</option>
+                          <option value="15">15.0 mg</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-medium text-[#817782] mb-1">
+                          Local da aplicação
+                        </label>
+                        <select
+                          value={mounjaroSite}
+                          onChange={(e) => setMounjaroSite(e.target.value as InjectionSite)}
+                          className="w-full rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-white dark:bg-[#1F1721] px-3 py-1.5 text-xs text-[#39313A] dark:text-[#F7EFF5]"
+                        >
+                          <option value="abdomen_direito">Abdómen Direito</option>
+                          <option value="abdomen_esquerdo">Abdómen Esquerdo</option>
+                          <option value="coxa_direita">Coxa Direita</option>
+                          <option value="coxa_esquerda">Coxa Esquerda</option>
+                          <option value="braco_direito">Braço Direito</option>
+                          <option value="braco_esquerdo">Braço Esquerdo</option>
+                          <option value="outro">Outro local</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating main symptoms today */}
+                <div>
+                  <span className="block text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5] mb-2">
+                    Classificar sintomas sentidos hoje (0 a 5)
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    {[
+                      { label: 'Náuseas', val: mounjaroNausea, set: setMounjaroNausea },
+                      { label: 'Saciedade / Falta de fome', val: mounjaroEarlySatiety, set: setMounjaroEarlySatiety },
+                      { label: 'Fadiga', val: mounjaroFatigue, set: setMounjaroFatigue },
+                      { label: 'Azia / Refluxo', val: mounjaroReflux, set: setMounjaroReflux },
+                      { label: 'Obstipação', val: mounjaroConstipation, set: setMounjaroConstipation },
+                    ].map((item) => (
+                      <div key={item.label} className="p-2 rounded-xl bg-[#FFF8FB] dark:bg-[#140F15]">
+                        <div className="flex justify-between items-center mb-1 text-[10px] font-semibold">
+                          <span className="truncate">{item.label}</span>
+                          <span className="text-[#C86D93]">{item.val}/5</span>
+                        </div>
+                        <div className="flex items-center justify-between gap-0.5">
+                          {[0, 1, 2, 3, 4, 5].map((lvl) => (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => item.set(lvl)}
+                              className={`w-5 h-5 rounded-md text-[10px] font-medium ${
+                                item.val === lvl
+                                  ? 'bg-[#E99AB9] text-white font-bold'
+                                  : 'bg-white dark:bg-[#1F1721] text-[#817782] border border-[#F2BFD3]/50 dark:border-[#362A36]'
+                              }`}
+                            >
+                              {lvl}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-medium text-[#817782] mb-1">
+                    Notas sobre o Mounjaro hoje
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Muita saciedade na hora do almoço, bebi 2.5L de água e sem náuseas..."
+                    value={mounjaroNotes}
+                    onChange={(e) => setMounjaroNotes(e.target.value)}
+                    className="w-full rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-[#FFF8FB] dark:bg-[#140F15] px-3 py-1.5 text-xs text-[#39313A] dark:text-[#F7EFF5]"
+                  />
                 </div>
               </div>
             )}

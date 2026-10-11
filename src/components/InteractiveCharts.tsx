@@ -45,6 +45,7 @@ export const InteractiveCharts: React.FC<Props> = ({
   const [showFat, setShowFat] = useState(true);
   const [showMuscle, setShowMuscle] = useState(true);
   const [showWater, setShowWater] = useState(true);
+  const [showBoneMass, setShowBoneMass] = useState(true);
 
   // Weight chart data
   const weightData = filteredAssessments
@@ -77,7 +78,8 @@ export const InteractiveCharts: React.FC<Props> = ({
       (a) =>
         (a.bodyFatPercent !== undefined && a.bodyFatPercent > 0) ||
         (a.musclePercent !== undefined && a.musclePercent > 0) ||
-        (a.waterPercent !== undefined && a.waterPercent > 0)
+        (a.waterPercent !== undefined && a.waterPercent > 0) ||
+        (a.boneMassKg !== undefined && a.boneMassKg > 0)
     )
     .map((a) => ({
       date: a.date,
@@ -85,6 +87,7 @@ export const InteractiveCharts: React.FC<Props> = ({
       fat: a.bodyFatPercent ?? null,
       muscle: a.musclePercent ?? null,
       water: a.waterPercent ?? null,
+      boneMass: a.boneMassKg ?? null,
     }));
 
   // Daily Journal data (Calories, Protein, Water)
@@ -367,6 +370,15 @@ export const InteractiveCharts: React.FC<Props> = ({
               />
               <span className="text-sky-600 font-medium">Água %</span>
             </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showBoneMass}
+                onChange={(e) => setShowBoneMass(e.target.checked)}
+                className="rounded-sm accent-[#D97706]"
+              />
+              <span className="text-amber-600 font-medium">Massa Óssea (kg)</span>
+            </label>
           </div>
 
           {compData.length === 0 ? (
@@ -384,10 +396,9 @@ export const InteractiveCharts: React.FC<Props> = ({
                     tickLine={false}
                   />
                   <YAxis
-                    domain={[0, 100]}
+                    domain={[0, 'auto']}
                     tick={{ fontSize: 11, fill: '#817782' }}
                     tickLine={false}
-                    unit="%"
                   />
                   <Tooltip
                     contentStyle={{
@@ -396,8 +407,11 @@ export const InteractiveCharts: React.FC<Props> = ({
                       border: '1px solid #F2BFD3',
                       fontSize: '12px',
                     }}
-                    formatter={(val: unknown) => [
-                      `${formatNumber(typeof val === 'number' ? val : Number(val))}%`,
+                    formatter={(val: any, name: any) => [
+                      String(name || '').includes('kg')
+                        ? `${formatNumber(typeof val === 'number' ? val : Number(val), 2)} kg`
+                        : `${formatNumber(typeof val === 'number' ? val : Number(val))}%`,
+                      String(name || ''),
                     ]}
                   />
                   <Legend />
@@ -429,6 +443,17 @@ export const InteractiveCharts: React.FC<Props> = ({
                       name="Água"
                       dataKey="water"
                       stroke="#0284C7"
+                      strokeWidth={2}
+                      dot={{ r: 3 }}
+                      connectNulls={false}
+                    />
+                  )}
+                  {showBoneMass && (
+                    <Line
+                      type="monotone"
+                      name="Massa Óssea (kg)"
+                      dataKey="boneMass"
+                      stroke="#D97706"
                       strokeWidth={2}
                       dot={{ r: 3 }}
                       connectNulls={false}

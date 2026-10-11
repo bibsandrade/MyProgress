@@ -268,7 +268,7 @@ export const BodyAssessmentsView: React.FC<Props> = ({
                         <span>Massa muscular: <strong>{formatPercent(item.musclePercent)}</strong></span>
                         <span>Água corporal: <strong>{formatPercent(item.waterPercent)}</strong></span>
                         <span>Gordura visceral: <strong>{item.visceralFatValue ?? '—'}</strong></span>
-                        <span>Proteína corporal: <strong>{formatPercent(item.proteinPercent)}</strong></span>
+                        <span>Massa óssea: <strong>{item.boneMassKg !== undefined ? `${formatNumber(item.boneMassKg, 2)} kg` : '—'}</strong></span>
                         <span>Metabolismo basal: <strong>{item.basalMetabolicRateKcal ? `${item.basalMetabolicRateKcal} kcal` : '—'}</strong></span>
                       </div>
                     </div>

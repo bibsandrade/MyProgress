@@ -6,25 +6,26 @@ import {VitePWA} from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
+    base: './',
     plugins: [
       react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon.svg'],
+        includeAssets: ['icon.svg', '.nojekyll'],
         manifest: {
-          id: '/',
+          id: './',
           name: 'My Progress',
           short_name: 'MyProgress',
           description: 'Acompanhamento pessoal de peso, composição corporal e hábitos diários.',
           theme_color: '#FFF8FB',
           background_color: '#FFF8FB',
           display: 'standalone',
-          start_url: '/',
-          scope: '/',
+          start_url: './',
+          scope: './',
           icons: [
             {
-              src: '/icon.svg',
+              src: 'icon.svg',
               sizes: '512x512',
               type: 'image/svg+xml',
               purpose: 'any',
@@ -38,7 +39,7 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {

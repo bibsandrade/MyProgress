@@ -1,7 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
 @layer base {
-  :root {
+  :root, [data-theme="light"], html:not(.dark) {
     --bg-main: #FFF8FB;
     --card-bg: #FFFFFF;
     --text-primary: #39313A;
@@ -11,9 +13,10 @@
     --rose-main: #E99AB9;
     --rose-dark: #C86D93;
     --border-subtle: #F3E4ED;
+    color-scheme: light;
   }
 
-  .dark {
+  html.dark, :root.dark, body.dark, [data-theme="dark"] {
     --bg-main: #140F15;
     --card-bg: #1F1721;
     --text-primary: #F7EFF5;
@@ -23,12 +26,14 @@
     --rose-main: #E99AB9;
     --rose-dark: #F2BFD3;
     --border-subtle: #2C212E;
+    color-scheme: dark;
   }
 
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-main);
     color: var(--text-primary);
+    min-height: 100vh;
   }
 }
 
@@ -49,3 +54,4 @@
     background: white !important;
   }
 }
+

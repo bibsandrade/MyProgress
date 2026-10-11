@@ -13,6 +13,7 @@ import {
   Award,
   Target,
   Heart,
+  Syringe,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import {
@@ -25,10 +26,12 @@ import { calculateDailyMealTotals } from '../services/calculations';
 
 interface Props {
   onOpenDailyModalWithDate: (date: string) => void;
+  onOpenMealModalWithDate?: (date: string) => void;
 }
 
 export const DailyJournalView: React.FC<Props> = ({
   onOpenDailyModalWithDate,
+  onOpenMealModalWithDate,
 }) => {
   const { dailyEntries, preferences, saveDailyEntry } = useApp();
   const [selectedDate, setSelectedDate] = useState(getTodayDateString());
@@ -200,26 +203,47 @@ export const DailyJournalView: React.FC<Props> = ({
 
           {/* Meals summary */}
           <div className="rounded-2xl bg-white dark:bg-[#1F1721] p-5 shadow-xs border border-[#F2BFD3]/40 dark:border-[#362A36]">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div className="flex items-center gap-2">
                 <Utensils className="w-4 h-4 text-[#C86D93]" />
                 <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] uppercase tracking-wide">
                   Refeições ({currentEntry.meals?.length || 0})
                 </span>
               </div>
-              <div className="text-xs">
-                <span className="text-[#817782] dark:text-[#A69AA8]">
-                  Total: <strong className="text-[#39313A] dark:text-[#F7EFF5]">{mealTotals.totalCalories} kcal</strong>
-                </span>
-                <span className="mx-2 text-[#817782]">·</span>
-                <span className="text-[#817782] dark:text-[#A69AA8]">
-                  Proteína: <strong className="text-[#39313A] dark:text-[#F7EFF5]">{mealTotals.totalProtein} g</strong>
-                </span>
+              <div className="flex items-center gap-3">
+                <div className="text-xs">
+                  <span className="text-[#817782] dark:text-[#A69AA8]">
+                    Total: <strong className="text-[#39313A] dark:text-[#F7EFF5]">{mealTotals.totalCalories} kcal</strong>
+                  </span>
+                  <span className="mx-2 text-[#817782]">·</span>
+                  <span className="text-[#817782] dark:text-[#A69AA8]">
+                    Proteína: <strong className="text-[#39313A] dark:text-[#F7EFF5]">{mealTotals.totalProtein} g</strong>
+                  </span>
+                </div>
+                {onOpenMealModalWithDate && (
+                  <button
+                    onClick={() => onOpenMealModalWithDate(selectedDate)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#E99AB9] hover:bg-[#C86D93] text-white text-[11px] font-semibold transition shadow-xs"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ Refeição</span>
+                  </button>
+                )}
               </div>
             </div>
 
             {(!currentEntry.meals || currentEntry.meals.length === 0) ? (
-              <p className="text-xs text-[#817782]">Nenhuma refeição detalhada.</p>
+              <div className="py-4 text-center text-xs text-[#817782] dark:text-[#A69AA8] bg-[#FFF8FB] dark:bg-[#140F15] rounded-xl border border-dashed border-[#F2BFD3]/50 dark:border-[#362A36]">
+                Nenhuma refeição detalhada para este dia.{' '}
+                {onOpenMealModalWithDate && (
+                  <button
+                    onClick={() => onOpenMealModalWithDate(selectedDate)}
+                    className="text-[#C86D93] font-semibold underline ml-1"
+                  >
+                    Registar alimentação
+                  </button>
+                )}
+              </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {currentEntry.meals.map((m) => (
@@ -358,6 +382,58 @@ export const DailyJournalView: React.FC<Props> = ({
               </div>
             )}
           </div>
+
+          {/* Mounjaro treatment for this day */}
+          {currentEntry.mounjaro && (
+            <div className="rounded-2xl bg-white dark:bg-[#1F1721] p-4 shadow-xs border border-[#F2BFD3]/40 dark:border-[#362A36]">
+              <div className="flex items-center gap-2 mb-2 text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] uppercase tracking-wide">
+                <Syringe className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span>Tratamento Mounjaro do Dia</span>
+              </div>
+              <div className="space-y-1.5 text-xs text-[#817782] dark:text-[#A69AA8]">
+                {currentEntry.mounjaro.tookInjection && (
+                  <div className="flex items-center gap-2 font-semibold text-purple-700 dark:text-purple-300">
+                    <span>💉 Dose administrada: {currentEntry.mounjaro.injectionDetails?.doseMg || '—'} mg</span>
+                    <span>({currentEntry.mounjaro.injectionDetails?.site || 'local da picada'})</span>
+                  </div>
+                )}
+                {currentEntry.mounjaro.symptoms && (
+                  <div className="flex flex-wrap gap-2 text-[11px] pt-1">
+                    {currentEntry.mounjaro.symptoms.nausea !== undefined && currentEntry.mounjaro.symptoms.nausea > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-[#F8DCE8] text-[#C86D93]">
+                        Náuseas: {currentEntry.mounjaro.symptoms.nausea}/5
+                      </span>
+                    )}
+                    {currentEntry.mounjaro.symptoms.earlySatiety !== undefined && currentEntry.mounjaro.symptoms.earlySatiety > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300">
+                        Saciedade: {currentEntry.mounjaro.symptoms.earlySatiety}/5
+                      </span>
+                    )}
+                    {currentEntry.mounjaro.symptoms.fatigue !== undefined && currentEntry.mounjaro.symptoms.fatigue > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300">
+                        Fadiga: {currentEntry.mounjaro.symptoms.fatigue}/5
+                      </span>
+                    )}
+                    {currentEntry.mounjaro.symptoms.acidReflux !== undefined && currentEntry.mounjaro.symptoms.acidReflux > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300">
+                        Azia: {currentEntry.mounjaro.symptoms.acidReflux}/5
+                      </span>
+                    )}
+                    {currentEntry.mounjaro.symptoms.constipation !== undefined && currentEntry.mounjaro.symptoms.constipation > 0 && (
+                      <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300">
+                        Obstipação: {currentEntry.mounjaro.symptoms.constipation}/5
+                      </span>
+                    )}
+                  </div>
+                )}
+                {currentEntry.mounjaro.symptoms?.notes && (
+                  <p className="text-[11px] text-[#39313A] dark:text-[#F7EFF5] mt-1">
+                    "{currentEntry.mounjaro.symptoms.notes}"
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Menstrual data if any */}
           {currentEntry.menstrualData && (

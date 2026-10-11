@@ -6,6 +6,7 @@ import {
   GoalMilestone,
   AppPreferences,
   BackupData,
+  MounjaroInjection,
 } from '../types';
 import { dbService, DEFAULT_PREFERENCES } from '../services/db';
 
@@ -14,6 +15,7 @@ interface AppContextType {
   assessments: BodyAssessment[];
   dailyEntries: DailyEntry[];
   milestones: GoalMilestone[];
+  mounjaroInjections: MounjaroInjection[];
   preferences: AppPreferences;
   isLoading: boolean;
   refreshData: () => Promise<void>;
@@ -22,6 +24,8 @@ interface AppContextType {
   deleteAssessment: (id: string) => Promise<void>;
   saveDailyEntry: (entry: DailyEntry) => Promise<void>;
   deleteDailyEntry: (id: string) => Promise<void>;
+  saveMounjaroInjection: (injection: MounjaroInjection) => Promise<void>;
+  deleteMounjaroInjection: (id: string) => Promise<void>;
   saveMilestone: (milestone: GoalMilestone) => Promise<void>;
   deleteMilestone: (id: string) => Promise<void>;
   updatePreferences: (preferences: Partial<AppPreferences>) => Promise<void>;
@@ -29,6 +33,7 @@ interface AppContextType {
     importedAssessments: number;
     importedEntries: number;
     importedMilestones: number;
+    importedMounjaro: number;
   }>;
   clearAllData: () => Promise<void>;
 }
@@ -40,30 +45,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [assessments, setAssessments] = useState<BodyAssessment[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
   const [milestones, setMilestones] = useState<GoalMilestone[]>([]);
-  const [preferences, setPreferences] = useState<AppPreferences>(DEFAULT_PREFERENCES);
+  const [mounjaroInjections, setMounjaroInjections] = useState<MounjaroInjection[]>([]);
+  const [preferences, setPreferences] = useState<AppPreferences>(() => {
+    const cachedTheme = localStorage.getItem('my_progress_theme') as 'light' | 'dark' | 'system' | null;
+    return cachedTheme ? { ...DEFAULT_PREFERENCES, theme: cachedTheme } : DEFAULT_PREFERENCES;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Apply theme to document
   const applyTheme = useCallback((themeMode: 'light' | 'dark' | 'system') => {
     const root = document.documentElement;
-    const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const body = document.body;
+    const isSystemDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     const isDark = themeMode === 'dark' || (themeMode === 'system' && isSystemDark);
 
     if (isDark) {
       root.classList.add('dark');
+      if (body) body.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
     } else {
       root.classList.remove('dark');
+      if (body) body.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
+    }
+    try {
+      localStorage.setItem('my_progress_theme', themeMode);
+    } catch {
+      // Safe fallback
     }
   }, []);
 
   const refreshData = useCallback(async () => {
     try {
-      const [prof, assessList, dailyList, miles, prefs] = await Promise.all([
+      const [prof, assessList, dailyList, miles, prefs, injList] = await Promise.all([
         dbService.getProfile(),
         dbService.getAssessments(),
         dbService.getDailyEntries(),
         dbService.getMilestones(),
         dbService.getPreferences(),
+        dbService.getMounjaroInjections(),
       ]);
 
       setProfile(prof);
@@ -71,7 +93,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setDailyEntries(dailyList);
       setMilestones(miles);
       setPreferences(prefs);
-      applyTheme(prefs.theme);
+      setMounjaroInjections(injList);
+
+      const cached = localStorage.getItem('my_progress_theme') as 'light' | 'dark' | 'system' | null;
+      applyTheme(cached || prefs.theme || 'light');
     } catch (err) {
       console.error('Erro ao carregar dados do IndexedDB:', err);
     } finally {
@@ -80,18 +105,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [applyTheme]);
 
   useEffect(() => {
+    // Apply cached theme immediately
+    const cached = localStorage.getItem('my_progress_theme') as 'light' | 'dark' | 'system' | null;
+    applyTheme(cached || 'light');
     refreshData();
+  }, [refreshData, applyTheme]);
 
+  useEffect(() => {
     // Listen to system theme changes if set to 'system'
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleThemeChange = () => {
-      if (preferences.theme === 'system') {
+      const currentTheme = (localStorage.getItem('my_progress_theme') as any) || preferences.theme;
+      if (currentTheme === 'system') {
         applyTheme('system');
       }
     };
     mediaQuery.addEventListener('change', handleThemeChange);
     return () => mediaQuery.removeEventListener('change', handleThemeChange);
-  }, [refreshData, preferences.theme, applyTheme]);
+  }, [preferences.theme, applyTheme]);
 
   const updateProfile = async (newProfile: UserProfile) => {
     await dbService.saveProfile(newProfile);
@@ -120,6 +151,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await dbService.deleteDailyEntry(id);
     const updated = await dbService.getDailyEntries();
     setDailyEntries(updated);
+  };
+
+  const saveMounjaroInjection = async (injection: MounjaroInjection) => {
+    await dbService.saveMounjaroInjection(injection);
+    const updated = await dbService.getMounjaroInjections();
+    setMounjaroInjections(updated);
+  };
+
+  const deleteMounjaroInjection = async (id: string) => {
+    await dbService.deleteMounjaroInjection(id);
+    const updated = await dbService.getMounjaroInjections();
+    setMounjaroInjections(updated);
   };
 
   const saveMilestone = async (milestone: GoalMilestone) => {
@@ -161,6 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         assessments,
         dailyEntries,
         milestones,
+        mounjaroInjections,
         preferences,
         isLoading,
         refreshData,
@@ -169,6 +213,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteAssessment,
         saveDailyEntry,
         deleteDailyEntry,
+        saveMounjaroInjection,
+        deleteMounjaroInjection,
         saveMilestone,
         deleteMilestone,
         updatePreferences,

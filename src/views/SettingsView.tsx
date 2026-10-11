@@ -199,41 +199,62 @@ export const SettingsView: React.FC = () => {
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 max-w-md">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg">
           <button
+            type="button"
             onClick={() => updatePreferences({ theme: 'light' })}
-            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition ${
+            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition cursor-pointer text-center ${
               preferences.theme === 'light'
-                ? 'border-[#C86D93] bg-[#F8DCE8]/40 dark:bg-[#2D1E2B] shadow-xs'
+                ? 'border-[#C86D93] bg-[#F8DCE8]/50 dark:bg-[#2D1E2B] shadow-xs'
                 : 'border-[#F2BFD3]/40 dark:border-[#362A36] hover:bg-[#FFF8FB] dark:hover:bg-[#140F15]'
             }`}
           >
-            <Sun className="w-5 h-5 text-[#C86D93]" />
-            <span className="text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5]">Claro</span>
+            <Sun className={`w-5 h-5 ${preferences.theme === 'light' ? 'text-[#C86D93]' : 'text-[#817782]'}`} />
+            <div>
+              <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">Claro</span>
+              <span className="text-[10px] text-[#817782] dark:text-[#A69AA8]">Tons suaves de rosa & branco</span>
+            </div>
+            {preferences.theme === 'light' && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E99AB9] text-white font-semibold">Ativo</span>
+            )}
           </button>
 
           <button
+            type="button"
             onClick={() => updatePreferences({ theme: 'dark' })}
-            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition ${
+            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition cursor-pointer text-center ${
               preferences.theme === 'dark'
-                ? 'border-[#C86D93] bg-[#F8DCE8]/40 dark:bg-[#2D1E2B] shadow-xs'
+                ? 'border-[#C86D93] bg-[#F8DCE8]/50 dark:bg-[#2D1E2B] shadow-xs'
                 : 'border-[#F2BFD3]/40 dark:border-[#362A36] hover:bg-[#FFF8FB] dark:hover:bg-[#140F15]'
             }`}
           >
-            <Moon className="w-5 h-5 text-[#C86D93]" />
-            <span className="text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5]">Escuro</span>
+            <Moon className={`w-5 h-5 ${preferences.theme === 'dark' ? 'text-[#C86D93]' : 'text-[#817782]'}`} />
+            <div>
+              <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">Escuro</span>
+              <span className="text-[10px] text-[#817782] dark:text-[#A69AA8]">Fundo escuro e confortável</span>
+            </div>
+            {preferences.theme === 'dark' && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E99AB9] text-white font-semibold">Ativo</span>
+            )}
           </button>
 
           <button
+            type="button"
             onClick={() => updatePreferences({ theme: 'system' })}
-            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition ${
+            className={`p-3.5 rounded-2xl border flex flex-col items-center gap-2 transition cursor-pointer text-center ${
               preferences.theme === 'system'
-                ? 'border-[#C86D93] bg-[#F8DCE8]/40 dark:bg-[#2D1E2B] shadow-xs'
+                ? 'border-[#C86D93] bg-[#F8DCE8]/50 dark:bg-[#2D1E2B] shadow-xs'
                 : 'border-[#F2BFD3]/40 dark:border-[#362A36] hover:bg-[#FFF8FB] dark:hover:bg-[#140F15]'
             }`}
           >
-            <Laptop className="w-5 h-5 text-[#C86D93]" />
-            <span className="text-xs font-semibold text-[#39313A] dark:text-[#F7EFF5]">Sistema</span>
+            <Laptop className={`w-5 h-5 ${preferences.theme === 'system' ? 'text-[#C86D93]' : 'text-[#817782]'}`} />
+            <div>
+              <span className="text-xs font-bold text-[#39313A] dark:text-[#F7EFF5] block">Sistema</span>
+              <span className="text-[10px] text-[#817782] dark:text-[#A69AA8]">Segue o dispositivo</span>
+            </div>
+            {preferences.theme === 'system' && (
+              <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#E99AB9] text-white font-semibold">Ativo</span>
+            )}
           </button>
         </div>
       </div>

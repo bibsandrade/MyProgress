@@ -60,7 +60,7 @@ export interface BodyAssessment {
   waterPercent?: number;
   visceralFatValue?: number;
   visceralFatUnit?: string;
-  proteinPercent?: number;
+  boneMassKg?: number; // Massa óssea em kg
   basalMetabolicRateKcal?: number;
   bmi?: number;
   source?: AssessmentSource;
@@ -109,6 +109,55 @@ export interface MenstrualData {
   notes?: string;
 }
 
+// MOUNJARO TREATMENT TRACKING
+export type InjectionSite =
+  | 'abdomen_direito'
+  | 'abdomen_esquerdo'
+  | 'coxa_direita'
+  | 'coxa_esquerda'
+  | 'braco_direito'
+  | 'braco_esquerdo'
+  | 'outro';
+
+export interface MounjaroInjection {
+  id: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  doseMg: number; // e.g. 2.5, 5.0, 7.5, 10.0, 12.5, 15.0
+  site: InjectionSite;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface MounjaroSymptomsRating {
+  nausea?: number; // 0 a 5 (0: sem sintoma, 1: muito leve, ..., 5: intenso)
+  earlySatiety?: number; // 0 a 5 (saciedade rápida / perda de apetite)
+  fatigue?: number; // 0 a 5 (cansaço / fadiga)
+  acidReflux?: number; // 0 a 5 (azia / refluxo)
+  constipation?: number; // 0 a 5 (obstipação / prisão de ventre)
+  diarrhea?: number; // 0 a 5 (diarreia)
+  headache?: number; // 0 a 5 (dor de cabeça)
+  abdominalPain?: number; // 0 a 5 (inchaço / cólica abdominal)
+  siteReaction?: number; // 0 a 5 (vermelhidão/dor na picada)
+  burping?: number; // 0 a 5 (eructação / arrotos)
+  customSymptom?: string;
+  customSymptomRating?: number;
+  notes?: string;
+}
+
+export interface MounjaroDayLog {
+  tookInjection?: boolean;
+  injectionId?: string;
+  doseMg?: number;
+  site?: InjectionSite;
+  injectionDetails?: {
+    doseMg: number;
+    site: InjectionSite;
+    time?: string;
+  };
+  symptoms?: MounjaroSymptomsRating;
+}
+
 export interface DailyEntry {
   id: string;
   date: string; // YYYY-MM-DD
@@ -125,6 +174,7 @@ export interface DailyEntry {
   bingeEpisode?: boolean;
   bingeNotes?: string;
   menstrualData?: MenstrualData;
+  mounjaro?: MounjaroDayLog;
   notes?: string;
   achievements?: string;
   challenges?: string;
@@ -148,7 +198,7 @@ export interface VisibleCompositionConfig {
   muscle: boolean;
   water: boolean;
   visceralFat: boolean;
-  protein: boolean;
+  boneMass: boolean;
   bmr: boolean;
   bmi: boolean;
 }
@@ -177,6 +227,7 @@ export interface AppPreferences {
     dailyJournal: boolean;
     waterReminder: boolean;
     waterFrequencyHours: number;
+    mounjaroWeekly: boolean;
   };
 }
 
@@ -188,5 +239,6 @@ export interface BackupData {
   assessments: BodyAssessment[];
   dailyEntries: DailyEntry[];
   milestones: GoalMilestone[];
+  mounjaroInjections?: MounjaroInjection[];
   preferences?: AppPreferences;
 }

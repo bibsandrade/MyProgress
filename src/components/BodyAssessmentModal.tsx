@@ -37,7 +37,7 @@ export const BodyAssessmentModal: React.FC<Props> = ({
   const [musclePercent, setMusclePercent] = useState('');
   const [waterPercent, setWaterPercent] = useState('');
   const [visceralFatValue, setVisceralFatValue] = useState('');
-  const [proteinPercent, setProteinPercent] = useState('');
+  const [boneMassKg, setBoneMassKg] = useState('');
   const [basalMetabolicRateKcal, setBasalMetabolicRateKcal] = useState('');
 
   const [notes, setNotes] = useState('');
@@ -70,8 +70,8 @@ export const BodyAssessmentModal: React.FC<Props> = ({
       setVisceralFatValue(
         assessmentToEdit.visceralFatValue !== undefined ? String(assessmentToEdit.visceralFatValue) : ''
       );
-      setProteinPercent(
-        assessmentToEdit.proteinPercent !== undefined ? String(assessmentToEdit.proteinPercent) : ''
+      setBoneMassKg(
+        assessmentToEdit.boneMassKg !== undefined ? String(assessmentToEdit.boneMassKg) : ''
       );
       setBasalMetabolicRateKcal(
         assessmentToEdit.basalMetabolicRateKcal !== undefined
@@ -99,7 +99,7 @@ export const BodyAssessmentModal: React.FC<Props> = ({
       setMusclePercent('');
       setWaterPercent('');
       setVisceralFatValue('');
-      setProteinPercent('');
+      setBoneMassKg('');
       setBasalMetabolicRateKcal('');
       setNotes('');
     }
@@ -163,7 +163,7 @@ export const BodyAssessmentModal: React.FC<Props> = ({
     }
 
     const numVisceral = parseOptionalNumber(visceralFatValue);
-    const numProtein = parseOptionalNumber(proteinPercent);
+    const numBone = parseOptionalNumber(boneMassKg);
     const numBmr = parseOptionalNumber(basalMetabolicRateKcal);
 
     // Ensure at least one value was filled
@@ -180,7 +180,7 @@ export const BodyAssessmentModal: React.FC<Props> = ({
       numMuscle !== undefined ||
       numWater !== undefined ||
       numVisceral !== undefined ||
-      numProtein !== undefined ||
+      numBone !== undefined ||
       numBmr !== undefined;
 
     if (!hasAnyMeasurement && !notes.trim()) {
@@ -210,7 +210,7 @@ export const BodyAssessmentModal: React.FC<Props> = ({
       waterPercent: numWater,
       visceralFatValue: numVisceral,
       visceralFatUnit: numVisceral !== undefined ? 'índice' : undefined,
-      proteinPercent: numProtein,
+      boneMassKg: numBone,
       basalMetabolicRateKcal: numBmr,
       bmi: calculatedBmi,
       source,
@@ -553,16 +553,16 @@ export const BodyAssessmentModal: React.FC<Props> = ({
 
               <div>
                 <label className="block text-[11px] font-medium text-[#817782] dark:text-[#A69AA8] mb-1">
-                  Proteína corporal (%)
+                  Massa óssea (kg)
                 </label>
                 <input
                   type="number"
-                  step="0.1"
-                  min="5"
-                  max="40"
-                  value={proteinPercent}
-                  onChange={(e) => setProteinPercent(e.target.value)}
-                  placeholder="Ex: 16.2"
+                  step="0.05"
+                  min="0.5"
+                  max="15"
+                  value={boneMassKg}
+                  onChange={(e) => setBoneMassKg(e.target.value)}
+                  placeholder="Ex: 2.55"
                   className="w-full rounded-xl border border-[#F2BFD3] dark:border-[#362A36] bg-[#FFF8FB] dark:bg-[#140F15] px-3 py-2 text-xs text-[#39313A] dark:text-[#F7EFF5] focus:outline-hidden focus:ring-2 focus:ring-[#E99AB9]"
                 />
               </div>

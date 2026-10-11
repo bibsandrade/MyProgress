@@ -190,6 +190,7 @@ export const ReportsView: React.FC<Props> = () => {
         'Músculo (%)',
         'Água (%)',
         'Gordura Visceral',
+        'Massa Óssea (kg)',
         'Notas',
       ];
 
@@ -212,6 +213,7 @@ export const ReportsView: React.FC<Props> = () => {
           a.musclePercent ?? '',
           a.waterPercent ?? '',
           a.visceralFatValue ?? '',
+          a.boneMassKg ?? '',
           `"${(a.notes || '').replace(/"/g, '""')}"`,
         ];
         csvRows.push(row.join(';'));
@@ -254,6 +256,7 @@ export const ReportsView: React.FC<Props> = () => {
         'Massa Muscular (%)': a.musclePercent ?? '',
         'Água (%)': a.waterPercent ?? '',
         'Gordura Visceral': a.visceralFatValue ?? '',
+        'Massa Óssea (kg)': a.boneMassKg ?? '',
         Notas: a.notes || '',
       }));
 

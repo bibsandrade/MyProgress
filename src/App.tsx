@@ -5,13 +5,17 @@ import { OnboardingModal } from './components/OnboardingModal';
 import { BodyAssessmentModal } from './components/BodyAssessmentModal';
 import { DailyEntryModal } from './components/DailyEntryModal';
 import { CompareAssessmentsModal } from './components/CompareAssessmentsModal';
+import { MounjaroInjectionModal } from './components/MounjaroInjectionModal';
+import { MounjaroSymptomsModal } from './components/MounjaroSymptomsModal';
+import { MealEntryModal } from './components/MealEntryModal';
 import { DashboardView } from './views/DashboardView';
 import { DailyJournalView } from './views/DailyJournalView';
+import { MounjaroView } from './views/MounjaroView';
 import { BodyAssessmentsView } from './views/BodyAssessmentsView';
 import { HistoryCalendarView } from './views/HistoryCalendarView';
 import { ReportsView } from './views/ReportsView';
 import { SettingsView } from './views/SettingsView';
-import { BodyAssessment } from './types';
+import { BodyAssessment, MounjaroInjection } from './types';
 import { getTodayDateString } from './utils/formatters';
 
 const AppContent: React.FC = () => {
@@ -28,6 +32,17 @@ const AppContent: React.FC = () => {
   const [dailyDateToEdit, setDailyDateToEdit] = useState<string>(getTodayDateString());
 
   const [compareModalOpen, setCompareModalOpen] = useState(false);
+
+  // Mounjaro modals
+  const [mounjaroModalOpen, setMounjaroModalOpen] = useState(false);
+  const [injectionToEdit, setInjectionToEdit] = useState<MounjaroInjection | null>(null);
+
+  const [symptomsModalOpen, setSymptomsModalOpen] = useState(false);
+  const [symptomsDate, setSymptomsDate] = useState<string>(getTodayDateString());
+
+  // Quick Meal modal
+  const [mealModalOpen, setMealModalOpen] = useState(false);
+  const [mealDateToEdit, setMealDateToEdit] = useState<string>(getTodayDateString());
 
   // Check onboarding on initial load
   useEffect(() => {
@@ -59,17 +74,38 @@ const AppContent: React.FC = () => {
     setDailyModalOpen(true);
   };
 
+  const handleOpenMealModal = (date?: string) => {
+    setMealDateToEdit(date || getTodayDateString());
+    setMealModalOpen(true);
+  };
+
+  const handleOpenInjectionModal = (injection?: MounjaroInjection) => {
+    setInjectionToEdit(injection || null);
+    setMounjaroModalOpen(true);
+  };
+
+  const handleOpenSymptomsModal = (date?: string) => {
+    setSymptomsDate(date || getTodayDateString());
+    setSymptomsModalOpen(true);
+  };
+
   return (
     <AppLayout
       currentTab={currentTab}
       onSelectTab={setCurrentTab}
       onOpenAssessmentModal={() => handleOpenAssessmentModal()}
       onOpenDailyModal={() => handleOpenDailyModal()}
+      onOpenInjectionModal={() => handleOpenInjectionModal()}
+      onOpenMealModal={() => handleOpenMealModal()}
+      onOpenSymptomsModal={() => handleOpenSymptomsModal()}
     >
       {currentTab === 'dashboard' && (
         <DashboardView
           onOpenAssessmentModal={() => handleOpenAssessmentModal()}
           onOpenDailyModal={() => handleOpenDailyModal()}
+          onOpenMealModal={() => handleOpenMealModal()}
+          onOpenInjectionModal={() => handleOpenInjectionModal()}
+          onOpenSymptomsModal={() => handleOpenSymptomsModal()}
           onNavigateToTab={setCurrentTab}
         />
       )}
@@ -77,6 +113,14 @@ const AppContent: React.FC = () => {
       {currentTab === 'journal' && (
         <DailyJournalView
           onOpenDailyModalWithDate={(date) => handleOpenDailyModal(date)}
+          onOpenMealModalWithDate={(date) => handleOpenMealModal(date)}
+        />
+      )}
+
+      {currentTab === 'mounjaro' && (
+        <MounjaroView
+          onOpenInjectionModal={handleOpenInjectionModal}
+          onOpenSymptomsModal={handleOpenSymptomsModal}
         />
       )}
 
@@ -123,6 +167,27 @@ const AppContent: React.FC = () => {
         isOpen={compareModalOpen}
         onClose={() => setCompareModalOpen(false)}
         assessments={assessments}
+      />
+
+      <MounjaroInjectionModal
+        isOpen={mounjaroModalOpen}
+        onClose={() => {
+          setMounjaroModalOpen(false);
+          setInjectionToEdit(null);
+        }}
+        injectionToEdit={injectionToEdit}
+      />
+
+      <MounjaroSymptomsModal
+        isOpen={symptomsModalOpen}
+        onClose={() => setSymptomsModalOpen(false)}
+        date={symptomsDate}
+      />
+
+      <MealEntryModal
+        isOpen={mealModalOpen}
+        onClose={() => setMealModalOpen(false)}
+        initialDate={mealDateToEdit}
       />
     </AppLayout>
   );
